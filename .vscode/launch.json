@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Chrome",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/src",
+      "runtimeArgs": [
+        "--disable-web-security",
+        "--auto-open-devtools-for-tabs"
+      ]
+    },
+    {
+      "name": "Launch Edge",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/src"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack",
+      "configurations": ["Launch Chrome"]
+    }
+  ]
+}
