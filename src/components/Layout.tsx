@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Car, LayoutDashboard, Package, ShoppingCart, Users, MessageSquare, Settings, LogOut, Menu, X, Bell, User as UserIcon, ChevronDown, Heart, Sparkles } from 'lucide-react';
+import { Car, LayoutDashboard, Package, ShoppingCart, Users, MessageSquare, Settings, LogOut, Menu, X, Bell, User as UserIcon, ChevronDown, Heart, Sparkles, Shield } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,6 +25,7 @@ export default function Layout({ children, currentPage, onNavigate }: LayoutProp
         { id: 'sellers', label: 'Vendedores', icon: UserIcon, gradient: 'from-emerald-500 to-teal-500' },
         { id: 'orders', label: 'Pedidos', icon: ShoppingCart, gradient: 'from-amber-500 to-orange-500' },
         { id: 'chat', label: 'Asistente AI', icon: MessageSquare, gradient: 'from-violet-500 to-purple-500' },
+        { id: 'crypto-demo', label: 'Sistema Cifrado', icon: Shield, gradient: 'from-emerald-500 to-cyan-500' },
         { id: 'settings', label: 'Configuración', icon: Settings, gradient: 'from-slate-500 to-slate-600' },
       ];
     }

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
-import { Car, Mail, Phone, Lock, User, Eye, EyeOff, ArrowRight, Shield, Wrench, ShoppingBag, Sparkles } from 'lucide-react';
+import { Car, Mail, Phone, Lock, User, Eye, EyeOff, ArrowRight, Shield, Wrench, ShoppingBag, Sparkles, ShieldCheck, AlertTriangle, Timer } from 'lucide-react';
+import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 export default function LoginPage() {
-  const { login, register, isLoading } = useAuth();
+  const { login, register, isLoading, loginAttempts, isLocked, lockoutRemaining } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -19,17 +21,31 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     
     if (isLogin) {
-      const success = await login(formData.email, formData.password);
-      if (!success) setError('Credenciales incorrectas. Intenta de nuevo.');
+      const result = await login(formData.email, formData.password);
+      if (!result.success) {
+        setError(result.message || 'Error al iniciar sesión');
+      }
     } else {
       if (!formData.name || !formData.email || !formData.phone || !formData.password) {
         setError('Por favor completa todos los campos.');
         return;
       }
-      const success = await register(formData.name, formData.email, formData.phone, formData.password, formData.role);
-      if (!success) setError('Error al crear la cuenta. Intenta de nuevo.');
+      
+      // Validar longitud mínima de contraseña
+      if (formData.password.length < 8) {
+        setError('La contraseña debe tener al menos 8 caracteres.');
+        return;
+      }
+      
+      const result = await register(formData.name, formData.email, formData.phone, formData.password, formData.role);
+      if (!result.success) {
+        setError(result.message || 'Error al crear la cuenta');
+      } else {
+        setSuccess(result.message || 'Cuenta creada exitosamente');
+      }
     }
   };
 
@@ -90,10 +106,18 @@ export default function LoginPage() {
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-500/10 to-transparent rounded-tr-full"></div>
 
           <div className="relative">
+            {/* Security badge */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-xs font-medium text-emerald-400">Contraseña Cifrada SHA-256</span>
+              </div>
+            </div>
+
             {/* Tabs */}
             <div className="flex glass rounded-2xl p-1.5 mb-6">
               <button
-                onClick={() => { setIsLogin(true); setError(''); }}
+                onClick={() => { setIsLogin(true); setError(''); setSuccess(''); }}
                 className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
                   isLogin 
                     ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/30' 
@@ -103,7 +127,7 @@ export default function LoginPage() {
                 Iniciar Sesión
               </button>
               <button
-                onClick={() => { setIsLogin(false); setError(''); }}
+                onClick={() => { setIsLogin(false); setError(''); setSuccess(''); }}
                 className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
                   !isLogin 
                     ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30' 
@@ -114,12 +138,48 @@ export default function LoginPage() {
               </button>
             </div>
 
+            {/* Lockout warning */}
+            {isLocked && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-4 animate-slide-up">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center">
+                    <Timer className="w-5 h-5 text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-red-400">Cuenta Bloqueada</p>
+                    <p className="text-xs text-red-400/70">
+                      Intenta de nuevo en {Math.ceil(lockoutRemaining / 60)}:{(lockoutRemaining % 60).toString().padStart(2, '0')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Login attempts warning */}
+            {loginAttempts > 0 && loginAttempts < 5 && isLogin && !isLocked && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-4 animate-slide-up">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  <p className="text-xs text-amber-400">
+                    Intentos fallidos: {loginAttempts}/5. La cuenta se bloqueará después de 5 intentos.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-4 text-red-300 text-sm flex items-center gap-2 animate-slide-up">
                 <div className="w-5 h-5 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-xs">!</span>
                 </div>
                 {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 mb-4 text-emerald-300 text-sm flex items-center gap-2 animate-slide-up">
+                <ShieldCheck className="w-5 h-5 flex-shrink-0" />
+                {success}
               </div>
             )}
 
@@ -225,17 +285,36 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {/* Password strength meter (solo en registro) */}
+              {!isLogin && formData.password && (
+                <PasswordStrengthMeter password={formData.password} />
+              )}
+
+              {/* Encryption info */}
+              {!isLogin && formData.password.length > 0 && (
+                <div className="flex items-center gap-2 p-2.5 bg-blue-500/5 border border-blue-500/10 rounded-lg">
+                  <Shield className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                  <p className="text-xs text-blue-300/70">
+                    Tu contraseña será cifrada con SHA-256 + Salt + Key Stretching (1000 iteraciones)
+                  </p>
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full relative py-4 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 overflow-hidden group"
+                disabled={isLoading || isLocked}
+                className="w-full relative py-4 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden group"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                 {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Cifrando...</span>
+                  </div>
                 ) : (
                   <>
-                    {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+                    <Shield className="w-5 h-5" />
+                    {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta Segura'}
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -247,7 +326,7 @@ export default function LoginPage() {
               <div className="mt-6 pt-6 border-t border-white/5">
                 <p className="text-xs text-slate-500 text-center mb-3 flex items-center justify-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-amber-400" />
-                  Cuentas de demostración
+                  Cuentas de demostración (contraseñas cifradas)
                 </p>
                 <div className="space-y-2">
                   {[
@@ -271,10 +350,14 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-6">
+        <div className="text-center mt-6 space-y-2">
           <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
             <Shield className="w-3 h-3" />
             Conexión segura con encriptación SSL
+          </p>
+          <p className="text-xs text-slate-600 flex items-center justify-center gap-1">
+            <Lock className="w-3 h-3" />
+            Contraseñas cifradas con SHA-256 + Salt
           </p>
         </div>
       </div>

@@ -11,6 +11,7 @@ import ChatPage from './pages/ChatPage';
 import SettingsPage from './pages/SettingsPage';
 import UsersPage from './pages/UsersPage';
 import SellerProfilePage from './pages/SellerProfilePage';
+import CryptoDemoPage from './pages/CryptoDemoPage';
 import { CheckCircle, Heart, Sparkles } from 'lucide-react';
 
 function AppContent() {
@@ -101,6 +102,8 @@ function AppContent() {
         return <SellerProfilePage />;
       case 'favorites':
         return <FavoritesPlaceholder />;
+      case 'crypto-demo':
+        return <CryptoDemoPage />;
       default:
         return <DashboardPage />;
     }
