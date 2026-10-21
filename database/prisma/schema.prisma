@@ -1,0 +1,274 @@
+// ============================================
+// Prisma Schema - AutoParts Pro
+// Alternativa: PostgreSQL con Prisma ORM
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  phone           String
+  password        String
+  role            Role      @default(CLIENT)
+  avatar          String?
+  verified        Boolean   @default(false)
+  verificationCode String?
+  verificationExpiry DateTime?
+  isActive        Boolean   @default(true)
+  lastLogin       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  sellerProfile   SellerProfile?
+  orders          Order[]   @relation("ClientOrders")
+  sellerOrders    Order[]   @relation("SellerOrders")
+  reviews         Review[]
+  favorites       Favorite[]
+  messagesSent    ChatMessage[] @relation("SenderMessages")
+  messagesReceived ChatMessage[] @relation("ReceiverMessages")
+
+  @@index([email])
+  @@index([role])
+}
+
+model SellerProfile {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id])
+  businessName    String
+  description     String    @default("")
+  logo            String?
+  address         String
+  city            String
+  state           String
+  latitude        Float
+  longitude       Float
+  phone           String
+  whatsapp        String?
+  schedule        String    @default("")
+  subscriptionType SubscriptionType @default(MONTHLY)
+  subscriptionActive Boolean @default(false)
+  subscriptionStart DateTime?
+  subscriptionEnd DateTime?
+  rating          Float     @default(0)
+  totalReviews    Int       @default(0)
+  totalSales      Int       @default(0)
+  totalRevenue    Float     @default(0)
+  isApproved      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  products        Product[]
+
+  @@index([city])
+  @@index([subscriptionActive])
+}
+
+model Product {
+  id              String    @id @default(uuid())
+  sellerId        String
+  seller          SellerProfile @relation(fields: [sellerId], references: [id])
+  name            String
+  description     String
+  price           Float
+  category        String
+  subcategory     String    @default("")
+  images          String[]
+  condition       Condition @default(NEW)
+  stock           Int       @default(0)
+  address         String
+  city            String
+  vehicleCompatibility String[]
+  partNumber      String?
+  brand           String?
+  warranty        String    @default("")
+  forSale         Boolean   @default(true)
+  forRent         Boolean   @default(false)
+  rentalPrice     Float?
+  rentalPeriod    RentalPeriod?
+  available       Boolean   @default(true)
+  featured        Boolean   @default(false)
+  views           Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  orderItems      OrderItem[]
+  reviews         Review[]
+  favorites       Favorite[]
+
+  @@index([category])
+  @@index([sellerId])
+  @@index([price])
+  @@index([available])
+}
+
+model Order {
+  id              String    @id @default(uuid())
+  orderNumber     String    @unique
+  clientId        String
+  client          User      @relation("ClientOrders", fields: [clientId], references: [id])
+  sellerId        String
+  seller          User      @relation("SellerOrders", fields: [sellerId], references: [id])
+  subtotal        Float
+  shippingCost    Float     @default(0)
+  total           Float
+  status          OrderStatus @default(PENDING)
+  deliveryMethod  DeliveryMethod
+  shippingFullName String?
+  shippingAddress  String?
+  shippingCity    String?
+  shippingPhone   String?
+  shippingNotes   String?
+  paymentMethod   PaymentMethod
+  paymentStatus   PaymentStatus @default(PENDING)
+  transactionId   String?
+  cardLast4       String?
+  trackingNumber  String?
+  notes           String    @default("")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  items           OrderItem[]
+
+  @@index([clientId, createdAt])
+  @@index([sellerId, status])
+}
+
+model OrderItem {
+  id              String    @id @default(uuid())
+  orderId         String
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id])
+  productName     String
+  quantity        Int
+  price           Float
+
+  @@index([orderId])
+}
+
+model ChatMessage {
+  id              String    @id @default(uuid())
+  conversationId  String
+  senderId        String
+  sender          User      @relation("SenderMessages", fields: [senderId], references: [id])
+  receiverId      String
+  receiver        User      @relation("ReceiverMessages", fields: [receiverId], references: [id])
+  message         String
+  isAI            Boolean   @default(false)
+  read            Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model Review {
+  id              String    @id @default(uuid())
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id])
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  rating          Int       // 1-5
+  comment         String    @default("")
+  images          String[]
+  createdAt       DateTime  @default(now())
+
+  @@index([productId])
+  @@index([userId])
+}
+
+model Favorite {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id])
+  createdAt       DateTime  @default(now())
+
+  @@unique([userId, productId])
+}
+
+model SystemConfig {
+  id              String    @id @default(uuid())
+  verificationMethod VerificationMethod @default(BOTH)
+  currency        String    @default("DOP")
+  monthlySubscriptionPrice Float @default(1500)
+  maxProductsPerSeller Int  @default(50)
+  maintenanceMode Boolean   @default(false)
+  updatedAt       DateTime  @updatedAt
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  ADMIN
+  SELLER
+  CLIENT
+}
+
+enum Condition {
+  NEW
+  USED
+  REFURBISHED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum DeliveryMethod {
+  PICKUP
+  SHIPPING
+}
+
+enum PaymentMethod {
+  CARD
+  TRANSFER
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum SubscriptionType {
+  MONTHLY
+  ADMIN_APPROVED
+}
+
+enum RentalPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum VerificationMethod {
+  EMAIL
+  PHONE
+  BOTH
+}
